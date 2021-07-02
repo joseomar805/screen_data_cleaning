@@ -55,14 +55,14 @@ def csv_single_col_from_excel(transposed_files):
 
 
 
-def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
+def append_df_to_excel(fn, df, sheet_name='Sheet1', startrow=None,
                        truncate_sheet=False,
                        **to_excel_kwargs):
     """
     Append a DataFrame [df] to existing Excel file [filename]
     into [sheet_name] Sheet. If [filename] doesn't exist, then this function will create it.
     Parameters:
-      filename : File path or existing ExcelWriter (Example: '/path/to/file.xlsx')
+      fn : File path or existing ExcelWriter (Example: '/path/to/file.xlsx')
       df : dataframe to save to workbook
       sheet_name : Name of sheet which will contain DataFrame (default: 'Sheet1')
       startrow : upper left cell row to dump data frame.
@@ -74,40 +74,43 @@ def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
                         [can be dictionary]
     Returns: None
     """
-    # ignore [engine] parameter if it was passed
-    if 'engine' in to_excel_kwargs:
-        to_excel_kwargs.pop('engine')
 
-    writer = pd.ExcelWriter(filename, engine='openpyxl')
+    print("TEST writer object creation of file...")
+    writer = pd.ExcelWriter(fn, engine='openpyxl')
 
-    # Python 2.x: define [FileNotFoundError] exception if it doesn't exist
-    try:
-        FileNotFoundError
-    except NameError:
-        FileNotFoundError = IOError
-    try:
-        # try to open an existing workbook
-        writer.book = load_workbook(filename)
+    wb = openpyxl.Workbook()
+    ws = wb.get_active_sheet()
+    ws.cell('A1').value = 1
+    wb.save('test.xslx')
 
-        # get the last row in the existing Excel sheet, if it was not specified explicitly
-        if startrow is None and sheet_name in writer.book.sheetnames:
-            startrow = writer.book[sheet_name].max_row
-        # truncate sheet
-        if truncate_sheet and sheet_name in writer.book.sheetnames:
-            # index of [sheet_name] sheet
-            idx = writer.book.sheetnames.index(sheet_name)
-            # remove [sheet_name]
-            writer.book.remove(writer.book.worksheets[idx])
-            # create an empty sheet [sheet_name] using old index
-            writer.book.create_sheet(sheet_name, idx)
-        # copy existing sheets
-        writer.sheets = {ws.title:ws for ws in writer.book.worksheets}
+    print("TEST load_workbook() ...")
+
+    #myfile = open(fn, "b")
+    
+    # try to open an existing workbook
+    writer.book = load_workbook(writer)
+
+
+    # get the last row in the existing Excel sheet, if it was not specified explicitly
+    if startrow is None and sheet_name in writer.book.sheetnames:
+        startrow = writer.book[sheet_name].max_row
+
+    # truncate sheet
+    if truncate_sheet and sheet_name in writer.book.sheetnames:
+        # index of [sheet_name] sheet
+        idx = writer.book.sheetnames.index(sheet_name)
+        # remove [sheet_name]
+        writer.book.remove(writer.book.worksheets[idx])
+        # create an empty sheet [sheet_name] using old index
+        writer.book.create_sheet(sheet_name, idx)
+    # copy existing sheets
+    writer.sheets = {ws.title:ws for ws in writer.book.worksheets}
+
     # file does not exist yet, create it
-    except FileNotFoundError:
-        pass
-
     if startrow is None:
         startrow = 0
+
+    
 
     # write new sheet
     df.to_excel(writer, sheet_name, startrow=startrow, index=False)
@@ -118,7 +121,9 @@ def append_df_to_excel(filename, df, sheet_name='Sheet1', startrow=None,
 def csv_from_excel(excel_files, transposed_files):
     for inx,file in enumerate(excel_files):
         excel_file = file
+
         outfile = transposed_files[inx]
+
         print("making ", outfile)
         x1 = pd.ExcelFile(excel_file, engine='openpyxl')
         for sheet in x1.sheet_names:
@@ -126,7 +131,10 @@ def csv_from_excel(excel_files, transposed_files):
             # extracts data from worksheet into pandas dataframe
             df = pd.read_excel(excel_file, sheet, header=None)
             df = df.transpose()
-            print("preview transposed data\n", df.head())
+            #print("preview transposed data\n", df.head())
+
+            print("saving transposed to outfile- ", outfile)
+
             # call helper function to write to excel sheet of transposed file
             append_df_to_excel(outfile, df, sheet_name=sheet)
 
