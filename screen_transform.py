@@ -28,14 +28,14 @@ import os
 import sys
 import csv
 import xlrd
+from pathlib import Path
 from openpyxl import load_workbook
-
-#sys.path.append("/Users/jose-appleair/Desktop/GitProjects/screen_data_cleaning/")
+sys.path.append("/Users/jose-appleair/Desktop/GitProjects/screen_data_cleaning/")
 
 def csv_single_col_from_excel(transposed_files):
     for excel_file in transposed_files:
         # saves new csv single col as below name
-        outfile = excel_file.replace("transposed.xlsx", "_single_col.csv")
+        outfile = excel_file.replace("transposed.xlsx", "single_col.csv")
         # initialize excel file
         x1 = pd.ExcelFile(excel_file, engine='openpyxl')
         # initialize single column outfile
@@ -50,14 +50,10 @@ def csv_single_col_from_excel(transposed_files):
             stackls = stack.tolist()
             single = single + stackls
         single = pd.DataFrame(single)
-        single.to_csv(outfile, index=False)
+        single.to_csv(outfile, index=False, header=None)
         print("saving ", outfile)
 
-
-
-def append_df_to_excel(fn, df, sheet_name='Sheet1', startrow=None,
-                       truncate_sheet=False,
-                       **to_excel_kwargs):
+def append_df_to_excel(filename, df, sheet_name):
     """
     Append a DataFrame [df] to existing Excel file [filename]
     into [sheet_name] Sheet. If [filename] doesn't exist, then this function will create it.
@@ -74,99 +70,59 @@ def append_df_to_excel(fn, df, sheet_name='Sheet1', startrow=None,
                         [can be dictionary]
     Returns: None
     """
-
-    print("TEST writer object creation of file...")
-    writer = pd.ExcelWriter(fn, engine='openpyxl')
-
-    wb = openpyxl.Workbook()
-    ws = wb.get_active_sheet()
-    ws.cell('A1').value = 1
-    wb.save('test.xslx')
-
-    print("TEST load_workbook() ...")
-
-    #myfile = open(fn, "b")
-    
-    # try to open an existing workbook
-    writer.book = load_workbook(writer)
-
-
-    # get the last row in the existing Excel sheet, if it was not specified explicitly
-    if startrow is None and sheet_name in writer.book.sheetnames:
-        startrow = writer.book[sheet_name].max_row
-
-    # truncate sheet
-    if truncate_sheet and sheet_name in writer.book.sheetnames:
-        # index of [sheet_name] sheet
-        idx = writer.book.sheetnames.index(sheet_name)
-        # remove [sheet_name]
-        writer.book.remove(writer.book.worksheets[idx])
-        # create an empty sheet [sheet_name] using old index
-        writer.book.create_sheet(sheet_name, idx)
-    # copy existing sheets
-    writer.sheets = {ws.title:ws for ws in writer.book.worksheets}
-
+    startrow = 0    
     # file does not exist yet, create it
-    if startrow is None:
-        startrow = 0
+    my_file = Path(filename)
+    if my_file.is_file():
+        # file exists
+        with pd.ExcelWriter(filename, mode='a') as writer:
+        # write new sheet
+            df.to_excel(writer, sheet_name, startrow=startrow, index=False)
+            writer.save() # save the workbook
 
-    
-
-    # write new sheet
-    df.to_excel(writer, sheet_name, startrow=startrow, index=False)
-    # save the workbook
-    writer.save()
-
+    else:
+        #print("FILE DOES NOT EXIST!!\n")
+        with pd.ExcelWriter(filename) as writer:
+            # write new sheet not in append mode
+            df.to_excel(writer, sheet_name, startrow=startrow, index=False)
+            writer.save() # save the workbook
 
 def csv_from_excel(excel_files, transposed_files):
     for inx,file in enumerate(excel_files):
         excel_file = file
-
         outfile = transposed_files[inx]
-
-        print("making ", outfile)
         x1 = pd.ExcelFile(excel_file, engine='openpyxl')
         for sheet in x1.sheet_names:
-            print('transposing ', file, ' sheet name- ', sheet)
             # extracts data from worksheet into pandas dataframe
             df = pd.read_excel(excel_file, sheet, header=None)
             df = df.transpose()
-            #print("preview transposed data\n", df.head())
-
-            print("saving transposed to outfile- ", outfile)
-
+            print("PASSING TO append_df_to_excel: ", outfile)
             # call helper function to write to excel sheet of transposed file
-            append_df_to_excel(outfile, df, sheet_name=sheet)
+            append_df_to_excel(outfile, df, sheet)
 
 
-################### EDIT MARKED SECTIONS BELOW #####################################
+
+################### EDIT 2 SECTIONS BELOW #####################################
 
 def main():
-    
-    #### EDIT 1/2 - ADD FULL PATH BELOW, MAKE SURE '/' IS AT END OF PATH STRING, ex. "/Users/jose-appleair/Desktop/" ###
+
+    #--------------------------------------------------------------------------
+    # EDIT 1/2 - ADD FULL PATH BELOW, MAKE SURE '/' AT END OF PATH $pwd ex. "/Users/jose-appleair/Desktop/"
     path2data = "/Users/jose-appleair/Desktop/finalAutomationData/"
-    ####
-    
-    # os.chdir(path2data) # all files will be saved to location you set as path2data variable
-    
-    #### EDIT 2/2 - ADD INPUT FILE NAMES TO excel_files LIST BELOW ###
-    # remove space in file names, ex. "200227Automation12.xlsx"
+    # EDIT 2/2 - ADD INPUT FILE NAMES TO excel_files LIST emove space in file names, ex. "200227Automation12.xlsx"
     excel_files = ["210603Automation21.xlsx"]
-    ####
+    #--------------------------------------------------------------------------
 
+    os.chdir(path2data) # all files will be saved at path2data
     transposed_files = []
-
     for i in excel_files: 
         excel_file = i
         outfile = excel_file.replace(".xlsx", "_transposed.xlsx")
         transposed_files.append(outfile)
-
     print("Your input files are: ", excel_files)
     print("Your transposed files will be named: ", transposed_files)
     print("Your final single column csv files will have same name as input files but with _single_col.csv")
     print("\nStart processing input files...\n")
-
-    # function calls that process your data
     csv_from_excel(excel_files, transposed_files)
     csv_single_col_from_excel(transposed_files)
 
