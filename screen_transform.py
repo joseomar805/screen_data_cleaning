@@ -16,11 +16,9 @@ TO RUN CODE, FOLLOW THESE STEPS...
 
 3. IN THIS SCRIPT EDIT THE 2 MARKED SECTIONS IN THE main()
 
-4. AFTER YOU HAVE ENTERED INPUT FILE NAMES AND PATH AT END OF THIS SCRIPT, IN TERMINAL TYPE...
+4. AFTER YOU HAVE ENTERED INPUT FILE NAMES AND PATH IN main(), IN TERMINAL TYPE...
 
     $ python screen_transform.py 
-
-5. HAVE A BEER BECAUSE YOU DID IT!!!
 """
 
 import pandas as pd
@@ -110,7 +108,7 @@ def main():
     # EDIT 1/2 - ADD FULL PATH BELOW, MAKE SURE '/' AT END OF PATH $pwd ex. "/Users/jose-appleair/Desktop/"
     path2data = "/Users/jose-appleair/Desktop/finalAutomationData/"
     # EDIT 2/2 - ADD INPUT FILE NAMES TO excel_files LIST emove space in file names, ex. "200227Automation12.xlsx"
-    excel_files = ["210603Automation21.xlsx"]
+    excel_files = ["DL-1_25_DL-25_41.xlsx"]
     #--------------------------------------------------------------------------
 
     os.chdir(path2data) # all files will be saved at path2data
@@ -119,6 +117,12 @@ def main():
         excel_file = i
         outfile = excel_file.replace(".xlsx", "_transposed.xlsx")
         transposed_files.append(outfile)
+        
+    # TODO: check if transposed name of file exist, if so dont continue otherwise will be appending
+    # to an already transposed file which results in x2 # of sheets compared to original input file
+    # TODO: add meta columns
+    # TODO: handle blank sheets
+
     print("Your input files are: ", excel_files)
     print("Your transposed files will be named: ", transposed_files)
     print("Your final single column csv files will have same name as input files but with _single_col.csv")
